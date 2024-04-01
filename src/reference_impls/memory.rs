@@ -9,6 +9,7 @@ use zk_evm_abstractions::queries::MemoryQuery;
 use zk_evm_abstractions::vm::{
     Memory, MemoryType, MAX_CODE_PAGE_SIZE_IN_WORDS, MAX_STACK_PAGE_SIZE_IN_WORDS,
 };
+use zk_evm_abstractions::zkevm_opcode_defs::system_params::CODE_ORACLE_ADDRESS;
 use zk_evm_abstractions::zkevm_opcode_defs::STATIC_MEMORY_PAGE;
 
 use super::*;
@@ -552,14 +553,29 @@ impl Memory for SimpleMemory {
 
     fn specialized_code_query(
         &mut self,
-        _monotonic_cycle_counter: u32,
-        query: MemoryQuery,
+        monotonic_cycle_counter: u32,
+        mut query: MemoryQuery,
     ) -> MemoryQuery {
         assert_eq!(query.location.memory_type, MemoryType::Code);
         let page = query.location.page.0;
 
+        // There are two types of places where decommitment could happen:
+        // - Code page
+        // - Heap page of CoreOracle precompile.
+        //
+        // Firstly, we check whether it is the current heap:
+
+        let current_heap_page = self.heaps.last().unwrap().0 .0;
+
+        if current_heap_page == page {
+            // This is a write to heap, so we treat it as such.
+            query.location.memory_type = MemoryType::Heap;
+            return self.execute_partial_query(monotonic_cycle_counter, query);
+        }
+
+        // Now, we know for sure that it is a code page.
+
         let idx = query.location.index.0 as usize;
-        let mut query = query;
         if query.rw_flag {
             if self.code_pages.contains_key(&page) == false {
                 self.code_pages
@@ -607,19 +623,12 @@ impl Memory for SimpleMemory {
             CallStackEntry::<8, EncodingModeProduction>::stack_page_from_base(new_base_page);
         let stack_page_from_pool = self.stacks_pool.pull();
         self.stack_pages.push((stack_page.0, stack_page_from_pool));
-        // self.stack_pages.push((stack_page.0, vec![PrimitiveValue::empty(); MAX_STACK_PAGE_SIZE_IN_WORDS]));
 
         let heap_page =
             CallStackEntry::<8, EncodingModeProduction>::heap_page_from_base(new_base_page);
 
         let aux_heap_page =
             CallStackEntry::<8, EncodingModeProduction>::aux_heap_page_from_base(new_base_page);
-
-        let current_heaps_data = self.heaps.last().unwrap();
-        let current_heap_page = current_heaps_data.0 .0;
-        let current_aux_heap_page = current_heaps_data.1 .0;
-
-        let idx_to_use_for_calldata_ptrs = self.heaps.len() - 1;
 
         let heap_page_from_pool = self.heaps_pool.pull();
         let aux_heap_page_from_pool = self.heaps_pool.pull();
@@ -629,53 +638,30 @@ impl Memory for SimpleMemory {
             (aux_heap_page.0, aux_heap_page_from_pool),
         ));
 
-        // self.heaps.push(
-        //     (
-        //         (heap_page.0, vec![U256::zero(); MAX_HEAP_PAGE_SIZE_IN_WORDS]),
-        //         (aux_heap_page.0, vec![U256::zero(); MAX_HEAP_PAGE_SIZE_IN_WORDS])
-        //     )
-        // );
+        // The new pages are marked as available
+        self.page_numbers_indirections
+            .insert(heap_page.0, Indirection::Heap(self.heaps.len() - 1));
+        self.page_numbers_indirections
+            .insert(aux_heap_page.0, Indirection::AuxHeap(self.heaps.len() - 1));
+
         // we may want to later on cleanup indirections
         self.indirections_to_cleanup_on_return
             .push(HashSet::with_capacity(4));
 
-        if calldata_fat_pointer.memory_page == 0 {
-            // no need to do anything
-        } else if calldata_fat_pointer.memory_page == current_heap_page {
-            self.page_numbers_indirections.insert(
-                current_heap_page,
-                Indirection::Heap(idx_to_use_for_calldata_ptrs),
-            );
-            // if we will return from here and returndata page will not "leak" calldata page via forwarding, then we can cleanup the indirection
-            self.indirections_to_cleanup_on_return
-                .last_mut()
-                .unwrap()
-                .insert(current_heap_page);
-        } else if calldata_fat_pointer.memory_page == current_aux_heap_page {
-            self.page_numbers_indirections.insert(
-                current_aux_heap_page,
-                Indirection::AuxHeap(idx_to_use_for_calldata_ptrs),
-            );
-            self.indirections_to_cleanup_on_return
-                .last_mut()
-                .unwrap()
-                .insert(current_aux_heap_page);
-        } else {
-            // calldata is unidirectional, so we check that it's already an indirection
-            let existing_indirection = self
-                .page_numbers_indirections
+        // if we will return from here and returndata page will not "leak" calldata page via forwarding, then we can cleanup the indirection
+        self.indirections_to_cleanup_on_return
+            .last_mut()
+            .unwrap()
+            .insert(heap_page.0);
+        self.indirections_to_cleanup_on_return
+            .last_mut()
+            .unwrap()
+            .insert(aux_heap_page.0);
+
+        if calldata_fat_pointer.memory_page != 0 {
+            self.page_numbers_indirections
                 .get(&calldata_fat_pointer.memory_page)
                 .expect("fat pointer must only point to reachable memory");
-            match existing_indirection {
-                Indirection::Heap(..) | Indirection::AuxHeap(..) => {}
-                a @ _ => {
-                    panic!("calldata forwaring using pointer {:?} should already have a heap/aux heap indirection, but has {:?}. All indirections:\n {:?}",
-                        &calldata_fat_pointer,
-                        a,
-                        &self.page_numbers_indirections
-                    );
-                }
-            }
         }
     }
 
@@ -683,7 +669,7 @@ impl Memory for SimpleMemory {
     fn finish_global_frame(
         &mut self,
         base_page: MemoryPage,
-        _this_address: Address,
+        this_address: Address,
         returndata_fat_pointer: FatPointer,
         _timestamp: Timestamp,
     ) {
@@ -731,7 +717,15 @@ impl Memory for SimpleMemory {
             assert!(existing.is_none());
             self.page_numbers_indirections
                 .insert(current_heap_page, Indirection::ReturndataExtendedLifetime);
-            previous_frame_indirections_to_cleanup.insert(current_heap_page);
+
+            // We do not need to clean up the page at this point.
+            current_frame_indirections_to_cleanup.remove(&current_heap_page);
+
+            // In case (this_address == CODE_ORACLE_ADDRESS && returndata_fat_pointer.length != 0)
+            // it is return from the code oracle, we must forever keep the page in memory.
+            if this_address != *CODE_ORACLE_ADDRESS || returndata_fat_pointer.length == 0 {
+                previous_frame_indirections_to_cleanup.insert(current_heap_page);
+            }
 
             // and we can reuse another page
             self.heaps_pool.return_element(current_aux_heap_content);
@@ -745,6 +739,10 @@ impl Memory for SimpleMemory {
                 current_aux_heap_page,
                 Indirection::ReturndataExtendedLifetime,
             );
+
+            // We do not need to clean up the page at this point.
+            current_frame_indirections_to_cleanup.remove(&current_heap_page);
+
             previous_frame_indirections_to_cleanup.insert(current_aux_heap_page);
 
             // and we can reuse another page
@@ -764,8 +762,14 @@ impl Memory for SimpleMemory {
                     current_aux_heap_page,
                     &self.page_numbers_indirections
                 );
-                current_frame_indirections_to_cleanup.remove(&returndata_page); // otherwise it'll be lost
-                previous_frame_indirections_to_cleanup.insert(returndata_page);
+
+                // If a page was not intended to be clean up in the first place, we should not clean it up now.
+                // This can be the case for pages returned by the `CodeOracle` precompile.
+                let was_intended_to_cleanup =
+                    current_frame_indirections_to_cleanup.remove(&returndata_page); // otherwise it'll be lost
+                if was_intended_to_cleanup {
+                    previous_frame_indirections_to_cleanup.insert(returndata_page);
+                }
             }
 
             // and we can reuse all pages
