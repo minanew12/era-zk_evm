@@ -741,7 +741,7 @@ impl Memory for SimpleMemory {
             );
 
             // We do not need to clean up the page at this point.
-            current_frame_indirections_to_cleanup.remove(&current_heap_page);
+            current_frame_indirections_to_cleanup.remove(&current_aux_heap_page);
 
             previous_frame_indirections_to_cleanup.insert(current_aux_heap_page);
 
