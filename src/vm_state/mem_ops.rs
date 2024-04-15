@@ -58,9 +58,7 @@ impl<const N: usize, E: VmEncodingMode<N>> MemOpsProcessor<N, E> {
                     let new_sp = current_sp.wrapping_add(vaddr);
                     self.sp = new_sp;
 
-                    let stack_page = CallStackEntry::<N, E>::stack_page_from_base(
-                        current_context.base_memory_page,
-                    );
+                    let stack_page = stack_page_from_base(current_context.base_memory_page);
                     let location = MemoryLocation {
                         memory_type: MemoryType::Stack,
                         page: stack_page,
@@ -73,9 +71,7 @@ impl<const N: usize, E: VmEncodingMode<N>> MemOpsProcessor<N, E> {
                     let new_sp = current_sp.wrapping_sub(vaddr);
                     self.sp = new_sp;
 
-                    let stack_page = CallStackEntry::<N, E>::stack_page_from_base(
-                        current_context.base_memory_page,
-                    );
+                    let stack_page = stack_page_from_base(current_context.base_memory_page);
                     let location = MemoryLocation {
                         memory_type: MemoryType::Stack,
                         page: stack_page,
@@ -87,8 +83,7 @@ impl<const N: usize, E: VmEncodingMode<N>> MemOpsProcessor<N, E> {
             }
             Operand::Full(ImmMemHandlerFlags::UseStackWithOffset) => {
                 let offset = self.sp.wrapping_sub(vaddr);
-                let stack_page =
-                    CallStackEntry::<N, E>::stack_page_from_base(current_context.base_memory_page);
+                let stack_page = stack_page_from_base(current_context.base_memory_page);
                 let location = MemoryLocation {
                     memory_type: MemoryType::Stack,
                     page: stack_page,
@@ -109,8 +104,7 @@ impl<const N: usize, E: VmEncodingMode<N>> MemOpsProcessor<N, E> {
                 Some(location)
             }
             Operand::Full(ImmMemHandlerFlags::UseAbsoluteOnStack) => {
-                let stack_page =
-                    CallStackEntry::<N, E>::stack_page_from_base(current_context.base_memory_page);
+                let stack_page = stack_page_from_base(current_context.base_memory_page);
                 let location = MemoryLocation {
                     memory_type: MemoryType::Stack,
                     page: stack_page,

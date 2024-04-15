@@ -80,7 +80,7 @@ impl<const N: usize, E: VmEncodingMode<N>> DecodedOpcode<N, E> {
 
         let memory_type = match inner_variant {
             UMAOpcode::HeapRead | UMAOpcode::HeapWrite => {
-                let page = CallStackEntry::<N, E>::heap_page_from_base(
+                let page = heap_page_from_base(
                     vm_state
                         .local_state
                         .callstack
@@ -93,7 +93,7 @@ impl<const N: usize, E: VmEncodingMode<N>> DecodedOpcode<N, E> {
                 MemoryType::Heap
             }
             UMAOpcode::AuxHeapRead | UMAOpcode::AuxHeapWrite => {
-                let page = CallStackEntry::<N, E>::aux_heap_page_from_base(
+                let page = aux_heap_page_from_base(
                     vm_state
                         .local_state
                         .callstack

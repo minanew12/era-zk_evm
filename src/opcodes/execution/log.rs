@@ -313,7 +313,7 @@ impl<const N: usize, E: VmEncodingMode<N>> DecodedOpcode<N, E> {
                         .get_current_stack_mut()
                         .ergs_remaining = ergs_remaining;
                     if precompile_abi.memory_page_to_read == 0 {
-                        let memory_page_to_read = CallStackEntry::<N, E>::heap_page_from_base(
+                        let memory_page_to_read = heap_page_from_base(
                             vm_state
                                 .local_state
                                 .callstack
@@ -324,7 +324,7 @@ impl<const N: usize, E: VmEncodingMode<N>> DecodedOpcode<N, E> {
                     }
 
                     if precompile_abi.memory_page_to_write == 0 {
-                        let memory_page_to_write = CallStackEntry::<N, E>::heap_page_from_base(
+                        let memory_page_to_write = heap_page_from_base(
                             vm_state
                                 .local_state
                                 .callstack
@@ -386,14 +386,13 @@ impl<const N: usize, E: VmEncodingMode<N>> DecodedOpcode<N, E> {
                     // add to decommit queue the normalized image
                     let timestamp_for_decommit =
                         vm_state.timestamp_for_first_decommit_or_precompile_read();
-                    let memory_page_candidate_for_decommitment =
-                        CallStackEntry::<N, E>::heap_page_from_base(
-                            vm_state
-                                .local_state
-                                .callstack
-                                .get_current_stack()
-                                .base_memory_page,
-                        );
+                    let memory_page_candidate_for_decommitment = heap_page_from_base(
+                        vm_state
+                            .local_state
+                            .callstack
+                            .get_current_stack()
+                            .base_memory_page,
+                    );
                     assert!(decommit_preimage_normalized.0 != [0u8; 28], "original buffer {:?} lead to zero normalized preimage, but didn't trigger exception", buffer);
                     let prepared_decommittment_query = vm_state.prepare_to_decommit(
                         vm_state.local_state.monotonic_cycle_counter,

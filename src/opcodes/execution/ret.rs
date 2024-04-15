@@ -127,18 +127,14 @@ impl<const N: usize, E: VmEncodingMode<N>> DecodedOpcode<N, E> {
                             memory_quasi_fat_pointer.offset = 0;
                         }
                         RetForwardPageType::UseHeap => {
-                            let owned_page = CallStackEntry::<N, E>::heap_page_from_base(
-                                current_callstack.base_memory_page,
-                            )
-                            .0;
+                            let owned_page =
+                                heap_page_from_base(current_callstack.base_memory_page).0;
 
                             memory_quasi_fat_pointer.memory_page = owned_page;
                         }
                         RetForwardPageType::UseAuxHeap => {
-                            let owned_page = CallStackEntry::<N, E>::aux_heap_page_from_base(
-                                current_callstack.base_memory_page,
-                            )
-                            .0;
+                            let owned_page =
+                                aux_heap_page_from_base(current_callstack.base_memory_page).0;
 
                             memory_quasi_fat_pointer.memory_page = owned_page;
                         }

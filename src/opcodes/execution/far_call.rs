@@ -359,14 +359,12 @@ impl<const N: usize, E: VmEncodingMode<N>> DecodedOpcode<N, E> {
                     far_call_abi.memory_quasi_fat_pointer.offset = 0;
                 }
                 FarCallForwardPageType::UseHeap => {
-                    let owned_page =
-                        CallStackEntry::<N, E>::heap_page_from_base(current_base_page).0;
+                    let owned_page = heap_page_from_base(current_base_page).0;
 
                     far_call_abi.memory_quasi_fat_pointer.memory_page = owned_page;
                 }
                 FarCallForwardPageType::UseAuxHeap => {
-                    let owned_page =
-                        CallStackEntry::<N, E>::aux_heap_page_from_base(current_base_page).0;
+                    let owned_page = aux_heap_page_from_base(current_base_page).0;
 
                     far_call_abi.memory_quasi_fat_pointer.memory_page = owned_page;
                 }
@@ -483,7 +481,7 @@ impl<const N: usize, E: VmEncodingMode<N>> DecodedOpcode<N, E> {
                 let timestamp_for_decommit =
                     vm_state.timestamp_for_first_decommit_or_precompile_read();
                 let memory_page_candidate_for_code_decommittment =
-                    CallStackEntry::<N, E>::code_page_candidate_from_base(new_base_memory_page);
+                    code_page_candidate_from_base(new_base_memory_page);
                 let prepared_decommmit_query = vm_state.prepare_to_decommit(
                     vm_state.local_state.monotonic_cycle_counter,
                     header,

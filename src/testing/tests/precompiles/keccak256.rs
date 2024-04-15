@@ -80,14 +80,11 @@ fn run_keccak256_test_inner(
     let input_memory_page = 4u32;
     let output_memory_page = 4u32;
 
-    memory.heaps.push((
+    memory.populate_page(vec![
         (input_memory_page, vec![U256::zero(); 1 << 10]),
         (0, vec![U256::zero(); 0]),
-    ));
-    memory.page_numbers_indirections.insert(
-        input_memory_page,
-        reference_impls::memory::Indirection::Heap(1),
-    );
+    ]);
+
     let mut precompiles_processor = DefaultPrecompilesProcessor::<false>;
 
     let mut hasher = Keccak256::default();

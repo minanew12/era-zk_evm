@@ -76,10 +76,10 @@ fn ecrecover_test_inner(
     let mut precompiles_processor = DefaultPrecompilesProcessor::<false>;
     let page_number = 4u32;
     // create heap page
-    memory.heaps.push((
+    memory.populate_page(vec![
         (page_number, vec![U256::zero(); 1 << 10]),
         (page_number + 1, vec![]),
-    ));
+    ]);
 
     // fill the memory
     let num_words_used = fill_memory(hash, r, s, v, page_number, &mut memory);

@@ -67,22 +67,22 @@ impl<const N: usize, E: VmEncodingMode<N>> CallStackEntry<N, E> {
 
         address_u16
     }
+}
 
-    pub const fn code_page_candidate_from_base(base: MemoryPage) -> MemoryPage {
-        MemoryPage(base.0)
-    }
+pub const fn code_page_candidate_from_base(base: MemoryPage) -> MemoryPage {
+    MemoryPage(base.0)
+}
 
-    pub const fn stack_page_from_base(base: MemoryPage) -> MemoryPage {
-        MemoryPage(base.0 + 1)
-    }
+pub const fn stack_page_from_base(base: MemoryPage) -> MemoryPage {
+    MemoryPage(base.0 + 1)
+}
 
-    pub const fn heap_page_from_base(base: MemoryPage) -> MemoryPage {
-        MemoryPage(base.0 + 2)
-    }
+pub const fn heap_page_from_base(base: MemoryPage) -> MemoryPage {
+    MemoryPage(base.0 + 2)
+}
 
-    pub const fn aux_heap_page_from_base(base: MemoryPage) -> MemoryPage {
-        MemoryPage(base.0 + 3)
-    }
+pub const fn aux_heap_page_from_base(base: MemoryPage) -> MemoryPage {
+    MemoryPage(base.0 + 3)
 }
 
 impl<const N: usize, E: VmEncodingMode<N>> Callstack<N, E> {
