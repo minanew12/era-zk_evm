@@ -24,6 +24,14 @@ impl<const B: bool> SimpleDecommitter<B> {
         }
     }
 
+    /// While this method is not used within the crate, it is relied upon by the compiler testing infrastructure.
+    pub fn get_preimage_by_hash(
+        &self,
+        hash: VersionedHashNormalizedPreimage,
+    ) -> Option<&Vec<U256>> {
+        self.known_hashes.get(&hash)
+    }
+
     pub fn populate(&mut self, elements: Vec<(U256, Vec<U256>)>) {
         let mut buffer = [0u8; 32];
         for (hash, values) in elements.into_iter() {
