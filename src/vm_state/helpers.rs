@@ -205,6 +205,23 @@ impl<
             .decommittment_processor
             .prepare_to_decommit(monotonic_cycle_counter, partial_query)?;
 
+        // Note, that we should never execute multiple decommitment queries using the same memory page.
+        // In reality it does not happen:
+        // - Each far call executes decommit exactly once and it always creates a new code page for it.
+        // - The `log.decommit` opcode is only available for system contracts and those should be written
+        // in a way that execute this opcode only once per execution, i.e. per one heap page.
+        if query.is_fresh {
+            assert!(
+                candidate_page == query.memory_page,
+                "Fresh accesses must use the candidate page"
+            );
+        } else {
+            assert!(
+                candidate_page != query.memory_page,
+                "Non-fresh accesses must not use the candidate page"
+            );
+        }
+
         self.witness_tracer
             .prepare_for_decommittment(monotonic_cycle_counter, query);
 
