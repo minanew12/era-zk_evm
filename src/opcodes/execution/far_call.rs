@@ -608,7 +608,9 @@ impl<const N: usize, E: VmEncodingMode<N>> DecodedOpcode<N, E> {
             new_context_is_static
         };
 
-        let memory_stipend = if dst_is_kernel {
+        // NOTE: this one decides based on what next frame will be, and not just on the formal
+        // call target
+        let memory_stipend = if address_is_kernel(&address_for_next) {
             zkevm_opcode_defs::system_params::NEW_KERNEL_FRAME_MEMORY_STIPEND
         } else {
             zkevm_opcode_defs::system_params::NEW_FRAME_MEMORY_STIPEND
