@@ -1,8 +1,6 @@
 use super::*;
 
 use crate::zkevm_opcode_defs::definitions::far_call::*;
-use crate::zkevm_opcode_defs::system_params::DEPLOYER_SYSTEM_CONTRACT_ADDRESS;
-use crate::zkevm_opcode_defs::system_params::STORAGE_AUX_BYTE;
 
 use crate::zkevm_opcode_defs::INITIAL_SP_ON_FAR_CALL;
 use zk_evm_abstractions::aux::*;

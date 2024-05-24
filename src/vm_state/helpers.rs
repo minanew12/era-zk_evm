@@ -392,6 +392,7 @@ impl<
             (self.local_state.pubdata_revert_counter.0, false)
         };
         assert!(of == false);
+        assert!(new_revert_counter >= 0); // global counter can not be < 0, only local one can
         self.local_state.pubdata_revert_counter = PubdataCost(new_revert_counter);
 
         old_frame
