@@ -7,12 +7,6 @@ We truly appreciate efforts to discover and disclose security issues responsibly
 If you'd like to report a security issue in the repositories of matter-labs organization, please proceed to our
 [Bug Bounty Program on Immunefi](https://era.zksync.io/docs/reference/troubleshooting/audit-bug-bounty.html#bug-bounty-program).
 
-## Other Security Issues
-
-We take an impact-first approach instead of a rules-first approach. Therefore, if you believe you found the impactful
-issue but can't report it via the Bug Bounty, please email us at
-[security@matterlabs.dev](mailto:security@matterlabs.dev).
-
 ### PGP Key
 
 The following PGP key may be used to communicate sensitive information to developers:
